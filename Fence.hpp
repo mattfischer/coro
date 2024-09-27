@@ -3,6 +3,8 @@
 
 #include "Executor.hpp"
 
+#include <vector>
+
 class Fence {
 public:
     Fence(Executor &executor);
@@ -16,7 +18,7 @@ public:
 private:
     bool mReady;
     Executor &mExecutor;
-    std::coroutine_handle<> mHandle;
+    std::vector<std::coroutine_handle<>> mAwaiters;
 };
 
 #endif

@@ -13,7 +13,7 @@ bool Fence::await_ready()
 
 void Fence::await_suspend(std::coroutine_handle<> handle)
 {
-    mHandle = handle;
+    mAwaiters.push_back(handle);
 }
 
 void Fence::await_resume()
@@ -23,7 +23,8 @@ void Fence::await_resume()
 void Fence::signal()
 {
     mReady = true;
-    if(mHandle) {
-        mExecutor.queue(mHandle);
+    for(auto &awaiter : mAwaiters)
+    {
+        mExecutor.queue(awaiter);
     }
 }
