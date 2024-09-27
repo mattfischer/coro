@@ -4,10 +4,7 @@
 
 #include <stdio.h>
 
-Executor executor;
-Fence fence(executor);
-
-Task<int> runTaskC()
+Task<int> runTaskC(Executor &executor)
 {
     printf("Task C beginning\n");
     co_await executor.yield();
@@ -15,7 +12,7 @@ Task<int> runTaskC()
     co_return 5;
 }
 
-Task<void> runTaskA()
+Task<void> runTaskA(Executor &executor, Fence &fence)
 {
     for(int i=0; i<5; i++) {
         printf("Task A (%i)\n", i);
@@ -29,13 +26,13 @@ Task<void> runTaskA()
     }
 
     printf("Task A awaiting from C\n");
-    int result = co_await runTaskC();
+    int result = co_await runTaskC(executor);
     printf("Task A received %i\n", result);
 
     co_return;
 }
 
-Task<void> runTaskB()
+Task<void> runTaskB(Executor &executor, Fence &fence)
 {
     for(int i=0; i<15; i++) {
         printf("Task B (%i)\n", i);
@@ -51,8 +48,11 @@ Task<void> runTaskB()
 
 int main(int argc, char *argv[])
 {
-    Task taskA = runTaskA();
-    Task taskB = runTaskB();
+    Executor executor;
+    Fence fence(executor);
+
+    Task taskA = runTaskA(executor, fence);
+    Task taskB = runTaskB(executor, fence);
 
     executor.queue(taskA.handle());
     executor.queue(taskB.handle());
