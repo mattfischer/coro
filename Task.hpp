@@ -3,33 +3,20 @@
 
 #include <coroutine>
 
-class Task {
+template<typename ReturnType> class Task {
 public:
-    struct promise_type;
-    using CoroutineHandle = std::coroutine_handle<promise_type>;
+    struct Promise;
+    struct Awaiter;
+    struct FinalAwaiter;
 
-    struct promise_type {
-        Task get_return_object() {
-            return Task(CoroutineHandle::from_promise(*this));
-        }
+    using promise_type = Promise;
+    using CoroutineHandle = std::coroutine_handle<Promise>;
 
-        std::suspend_always initial_suspend() noexcept { runnable = true; return {}; }
-        std::suspend_always final_suspend() noexcept { return {}; }
-        void return_void() {}
-        void unhandled_exception() {}
-
-        bool runnable;
-    };
+    Awaiter operator co_await() { return {*this}; }
 
     Task(CoroutineHandle handle)
     : mHandle(handle)
     {
-    }
-
-    Task(Task &&other)
-    {
-        mHandle = other.mHandle;
-        other.mHandle = CoroutineHandle();
     }
 
     ~Task()
@@ -39,25 +26,6 @@ public:
         }
     }
 
-    Task &operator=(Task &&other) {
-        mHandle = other.mHandle;
-        other.mHandle = CoroutineHandle();
-        return *this;
-    }
-
-    bool done() {
-        return mHandle ? mHandle.done() : true;
-    }
-
-    bool runnable() {
-        return mHandle.promise().runnable;
-    }
-
-    void run()
-    {
-        mHandle.resume();
-    }
-
     const CoroutineHandle &handle() const
     {
         return mHandle;
@@ -65,6 +33,119 @@ public:
 
 private:
     CoroutineHandle mHandle;
+};
+
+template<typename ReturnType> struct Task<ReturnType>::Promise {
+    Task<ReturnType> get_return_object()
+    {
+        return Task<ReturnType>(CoroutineHandle::from_promise(*this));
+    }
+
+    std::suspend_always initial_suspend() noexcept
+    {
+        return {};
+    }
+
+    FinalAwaiter final_suspend() noexcept
+    {
+        return {awaiter};
+    }
+
+    void return_value(ReturnType value) 
+    {
+        returnValue = value;
+    }
+
+    void unhandled_exception()
+    {
+    }
+
+    std::coroutine_handle<> awaiter = std::noop_coroutine();
+    ReturnType returnValue;
+};
+
+template<> struct Task<void>::Promise {
+    Task<void> get_return_object()
+    {
+        return Task<void>(CoroutineHandle::from_promise(*this));
+    }
+
+    std::suspend_always initial_suspend() noexcept
+    {
+        return {};
+    }
+
+    Task<void>::FinalAwaiter final_suspend() noexcept
+    {
+        return {awaiter};
+    }
+
+    void return_void() 
+    {
+    }
+
+    void unhandled_exception()
+    {
+    }
+
+    std::coroutine_handle<> awaiter = std::noop_coroutine();
+};
+
+template<typename ReturnType> struct Task<ReturnType>::FinalAwaiter {
+    bool await_ready() noexcept
+    {
+        return false;
+    }
+
+    std::coroutine_handle<> await_suspend(std::coroutine_handle<>) noexcept
+    {
+        return resumeHandle;
+    }
+
+    void await_resume() noexcept
+    {
+    }
+
+    std::coroutine_handle<> resumeHandle;
+};
+
+template<typename ReturnType> struct Task<ReturnType>::Awaiter {
+    bool await_ready() 
+    {
+        return false;
+    }
+
+    std::coroutine_handle<> await_suspend(std::coroutine_handle<> handle)
+    {
+        task.mHandle.promise().awaiter = handle; 
+        return task.mHandle;   
+    }
+
+    ReturnType await_resume()
+    {
+        return task.mHandle.promise().returnValue;
+    }
+
+    Task<ReturnType> &task;
+};
+
+template<> struct Task<void>::Awaiter {
+    bool await_ready() 
+    {
+        return false;
+    }
+
+    std::coroutine_handle<> await_suspend(std::coroutine_handle<> handle)
+    {
+        task.mHandle.promise().awaiter = handle; 
+        return task.mHandle;   
+    }
+
+    void await_resume()
+    {
+    }
+
+    Task<void> &task;
 };
 
 #endif

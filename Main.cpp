@@ -7,27 +7,39 @@
 Executor executor;
 Fence fence(executor);
 
-Task runTaskA()
+Task<int> runTaskC()
+{
+    printf("Task C beginning\n");
+    co_await executor.yield();
+    printf("Task C returning value\n");
+    co_return 5;
+}
+
+Task<void> runTaskA()
 {
     for(int i=0; i<5; i++) {
         printf("Task A (%i)\n", i);
         if(i == 3) {
-            printf("...await\n");
+            printf("...Task A await\n");
             co_await fence;
-            printf("Task A resume\n");
+            printf("...Task A resume\n");
         } else {
             co_await executor.yield();
         }
     }
 
+    printf("Task A awaiting from C\n");
+    int result = co_await runTaskC();
+    printf("Task A received %i\n", result);
+
     co_return;
 }
 
-Task runTaskB()
+Task<void> runTaskB()
 {
-    for(int i=0; i<10; i++) {
+    for(int i=0; i<15; i++) {
         printf("Task B (%i)\n", i);
-        if(i == 8) {
+        if(i == 7) {
             printf("...signal\n");
             fence.signal();
         }
