@@ -1,9 +1,11 @@
 #include "Task.hpp"
 #include "Executor.hpp"
+#include "Fence.hpp"
 
 #include <stdio.h>
 
-Task::Fence fence;
+Executor executor;
+Fence fence(executor);
 
 Task runTaskA()
 {
@@ -14,7 +16,7 @@ Task runTaskA()
             co_await fence;
             printf("Task A resume\n");
         } else {
-            co_yield nullptr;
+            co_await executor.yield();
         }
     }
 
@@ -29,7 +31,7 @@ Task runTaskB()
             printf("...signal\n");
             fence.signal();
         }
-        co_yield nullptr;
+        co_await executor.yield();
     }
 
     co_return;
@@ -40,9 +42,8 @@ int main(int argc, char *argv[])
     Task taskA = runTaskA();
     Task taskB = runTaskB();
 
-    Executor executor;
-    executor.addTask(std::move(taskA));
-    executor.addTask(std::move(taskB));
+    executor.queue(taskA.handle());
+    executor.queue(taskB.handle());
 
     executor.run();
 

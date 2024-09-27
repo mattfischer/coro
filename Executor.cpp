@@ -1,20 +1,19 @@
 #include "Executor.hpp"
 
-void Executor::addTask(Task task)
+void Executor::queue(std::coroutine_handle<> handle)
 {
-    mTasks.push_back(std::move(task));
+    mQueue.push(handle);
 }
 
 void Executor::run()
 {
-    while(mTasks.size() > 0) {
-        for(int i=0; i<mTasks.size(); i++) {
-            if(mTasks[i].done()) {
-                mTasks.erase(mTasks.begin() + i);
-                i--;
-            } else if(mTasks[i].runnable()) {
-                mTasks[i].run();
-            }
-        }
+    while(!mQueue.empty()) {
+        mQueue.front().resume();
+        mQueue.pop();
     }
+}
+
+Executor::YieldAwaitable Executor::yield()
+{
+    return YieldAwaitable(*this);
 }
