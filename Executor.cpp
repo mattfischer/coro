@@ -12,7 +12,7 @@ void Executor::run()
             if(mTasks[i].done()) {
                 mTasks.erase(mTasks.begin() + i);
                 i--;
-            } else {
+            } else if(mTasks[i].runnable()) {
                 mTasks[i].run();
             }
         }
