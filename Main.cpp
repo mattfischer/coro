@@ -50,6 +50,8 @@ Task<void> taskB(Executor &executor, Fence &fence)
 
 Task<void> taskC(Executor &executor, Fence &fence)
 {
+    using namespace std::chrono_literals;
+ 
     for(int i=0; i<15; i++) {
         printf("Task C (%i)\n", i);
         if(i == 10) {
@@ -58,6 +60,10 @@ Task<void> taskC(Executor &executor, Fence &fence)
         }
         co_await executor.yield();
     }
+
+    printf("Task C sleeping...\n");
+    co_await executor.sleep_for(1s);
+    printf("...Task C done with sleep\n");
 
     co_return;
 }

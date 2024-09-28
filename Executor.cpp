@@ -1,17 +1,32 @@
 #include "Executor.hpp"
 
+#include <thread>
+
 void Executor::enqueue(std::coroutine_handle<> handle)
 {
-    mQueue.push(handle);
+    mReadyQueue.push(handle);
+}
+
+void Executor::enqueueLater(std::coroutine_handle<> handle, std::chrono::steady_clock::time_point wakeup)
+{
+    mLaterQueue.emplace(handle, wakeup);
 }
 
 void Executor::exec()
 {
-    while(!mQueue.empty()) {
-        mQueue.front().resume();
-        mQueue.pop();
+    while(true) {
+        if(mReadyQueue.size() > 0) {
+            mReadyQueue.front().resume();
+            mReadyQueue.pop();
+        } else if(mLaterQueue.size() > 0) {
+            std::this_thread::sleep_until(mLaterQueue.top().wakeup);
+            mLaterQueue.top().handle.resume();
+            mLaterQueue.pop();
+        } else {
+            break;
+        }
 
-        if(!mCleanupHandles.empty()) {
+        if(mCleanupHandles.size() > 0) {
             for(auto &handle : mCleanupHandles) {
                 handle.destroy();
             }
