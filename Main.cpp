@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 
-Task<int> runTaskD(Executor &executor)
+Task<int> taskD(Executor &executor)
 {
     printf("Task D beginning\n");
     co_await executor.yield();
@@ -12,7 +12,7 @@ Task<int> runTaskD(Executor &executor)
     co_return 5;
 }
 
-Task<void> runTaskA(Executor &executor, Fence &fence)
+Task<void> taskA(Executor &executor, Fence &fence)
 {
     for(int i=0; i<5; i++) {
         printf("Task A (%i)\n", i);
@@ -26,13 +26,13 @@ Task<void> runTaskA(Executor &executor, Fence &fence)
     }
 
     printf("Task A awaiting from D\n");
-    int result = co_await runTaskD(executor);
+    int result = co_await taskD(executor);
     printf("Task A received %i\n", result);
 
     co_return;
 }
 
-Task<void> runTaskB(Executor &executor, Fence &fence)
+Task<void> taskB(Executor &executor, Fence &fence)
 {
     for(int i=0; i<15; i++) {
         printf("Task B (%i)\n", i);
@@ -48,7 +48,7 @@ Task<void> runTaskB(Executor &executor, Fence &fence)
     co_return;
 }
 
-Task<void> runTaskC(Executor &executor, Fence &fence)
+Task<void> taskC(Executor &executor, Fence &fence)
 {
     for(int i=0; i<15; i++) {
         printf("Task C (%i)\n", i);
@@ -67,15 +67,11 @@ int main(int argc, char *argv[])
     Executor executor;
     Fence fence(executor);
 
-    Task taskA = runTaskA(executor, fence);
-    Task taskB = runTaskB(executor, fence);
-    Task taskC = runTaskC(executor, fence);
+    executor.runAsync(taskA(executor, fence));
+    executor.runAsync(taskB(executor, fence));
+    executor.runAsync(taskC(executor, fence));
 
-    executor.queue(taskA.handle());
-    executor.queue(taskB.handle());
-    executor.queue(taskC.handle());
-
-    executor.run();
+    executor.exec();
 
     return 0;
 }

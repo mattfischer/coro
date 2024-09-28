@@ -25,6 +25,6 @@ void Fence::signal()
     mReady = true;
     for(auto &awaiter : mAwaiters)
     {
-        mExecutor.queue(awaiter);
+        mExecutor.enqueue(awaiter);
     }
 }
