@@ -1,6 +1,6 @@
 #include "Task.hpp"
 #include "Executor.hpp"
-#include "Fence.hpp"
+#include "Future.hpp"
 
 #include <stdio.h>
 
@@ -12,14 +12,14 @@ Task<int> taskD(Executor &executor)
     co_return 5;
 }
 
-Task<void> taskA(Executor &executor, Fence &fence)
+Task<void> taskA(Executor &executor, Future<int> &future)
 {
     for(int i=0; i<5; i++) {
         printf("Task A (%i)\n", i);
         if(i == 3) {
             printf("...Task A await\n");
-            co_await fence;
-            printf("...Task A resume\n");
+            int result = co_await future;
+            printf("...Task A resume (future returned %i)\n", result);
         } else {
             co_await executor.yield();
         }
@@ -32,14 +32,14 @@ Task<void> taskA(Executor &executor, Fence &fence)
     co_return;
 }
 
-Task<void> taskB(Executor &executor, Fence &fence)
+Task<void> taskB(Executor &executor, Future<int> &future)
 {
     for(int i=0; i<15; i++) {
         printf("Task B (%i)\n", i);
         if(i == 5) {
             printf("...Task B await\n");
-            co_await fence;
-            printf("...Task B resume\n");
+            int result = co_await future;
+            printf("...Task B resume (future returned %i)\n", result);
         } else {
             co_await executor.yield();
         }
@@ -48,15 +48,15 @@ Task<void> taskB(Executor &executor, Fence &fence)
     co_return;
 }
 
-Task<void> taskC(Executor &executor, Fence &fence)
+Task<void> taskC(Executor &executor, Future<int> &future)
 {
     using namespace std::chrono_literals;
  
     for(int i=0; i<15; i++) {
         printf("Task C (%i)\n", i);
         if(i == 10) {
-            printf("...signal\n");
-            fence.signal();
+            printf("...complete future\n");
+            future.complete(10);
         }
         co_await executor.yield();
     }
@@ -71,11 +71,11 @@ Task<void> taskC(Executor &executor, Fence &fence)
 int main(int argc, char *argv[])
 {
     Executor executor;
-    Fence fence(executor);
+    Future<int> future(executor);
 
-    executor.runAsync(taskA(executor, fence));
-    executor.runAsync(taskB(executor, fence));
-    executor.runAsync(taskC(executor, fence));
+    executor.runAsync(taskA(executor, future));
+    executor.runAsync(taskB(executor, future));
+    executor.runAsync(taskC(executor, future));
 
     executor.exec();
 
