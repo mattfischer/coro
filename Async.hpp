@@ -1,9 +1,9 @@
-#ifndef TASK_HPP
-#define TASK_HPP
+#ifndef AASYNC_HPP
+#define ASYNC_HPP
 
 #include <coroutine>
 
-template<typename ReturnType> class Task {
+template<typename ReturnType> class Async {
 public:
     struct Promise;
     struct Awaiter;
@@ -14,25 +14,25 @@ public:
 
     Awaiter operator co_await() { return { *this }; }
 
-    Task(CoroutineHandle handle)
+    Async(CoroutineHandle handle)
     : mHandle(handle)
     {
     }
 
-    Task(Task &&other)
+    Async(Async &&other)
     {
         mHandle = other.mHandle;
         other.mHandle = CoroutineHandle();
     }
 
-    Task &operator=(Task &&other)
+    Async &operator=(Async &&other)
     {
         mHandle = other.mHandle;
         other.mHandle = CoroutineHandle();
         return *this;
     }
 
-    ~Task()
+    ~Async()
     {
         if(mHandle) {
             mHandle.destroy();
@@ -48,8 +48,8 @@ private:
     CoroutineHandle mHandle;
 };
 
-template<typename ReturnType> struct Task<ReturnType>::Promise {
-    Task<ReturnType> get_return_object() { return Task<ReturnType>(CoroutineHandle::from_promise(*this)); }
+template<typename ReturnType> struct Async<ReturnType>::Promise {
+    Async<ReturnType> get_return_object() { return Async<ReturnType>(CoroutineHandle::from_promise(*this)); }
     std::suspend_always initial_suspend() noexcept { return {}; }
     FinalAwaiter final_suspend() noexcept { return { awaiter }; }
     void return_value(ReturnType value) { returnValue = value; }
@@ -59,17 +59,17 @@ template<typename ReturnType> struct Task<ReturnType>::Promise {
     ReturnType returnValue;
 };
 
-template<> struct Task<void>::Promise {
-    Task<void> get_return_object() { return Task<void>(CoroutineHandle::from_promise(*this)); }
+template<> struct Async<void>::Promise {
+    Async<void> get_return_object() { return Async<void>(CoroutineHandle::from_promise(*this)); }
     std::suspend_always initial_suspend() noexcept { return {}; }
-    Task<void>::FinalAwaiter final_suspend() noexcept { return { awaiter }; }
+    Async<void>::FinalAwaiter final_suspend() noexcept { return { awaiter }; }
     void return_void() {}
     void unhandled_exception() {}
 
     std::coroutine_handle<> awaiter = std::noop_coroutine();
 };
 
-template<typename ReturnType> struct Task<ReturnType>::FinalAwaiter {
+template<typename ReturnType> struct Async<ReturnType>::FinalAwaiter {
     bool await_ready() noexcept { return false; }
     std::coroutine_handle<> await_suspend(std::coroutine_handle<>) noexcept { return resumeHandle; }
     void await_resume() noexcept {}
@@ -77,28 +77,28 @@ template<typename ReturnType> struct Task<ReturnType>::FinalAwaiter {
     std::coroutine_handle<> resumeHandle;
 };
 
-template<typename ReturnType> struct Task<ReturnType>::Awaiter {
+template<typename ReturnType> struct Async<ReturnType>::Awaiter {
     bool await_ready() { return false; }
     std::coroutine_handle<> await_suspend(std::coroutine_handle<> handle)
     {
-        task.mHandle.promise().awaiter = handle; 
-        return task.mHandle;   
+        async.mHandle.promise().awaiter = handle; 
+        return async.mHandle;   
     }
-    ReturnType await_resume() { return task.mHandle.promise().returnValue; }
+    ReturnType await_resume() { return async.mHandle.promise().returnValue; }
 
-    Task<ReturnType> &task;
+    Async<ReturnType> &async;
 };
 
-template<> struct Task<void>::Awaiter {
+template<> struct Async<void>::Awaiter {
     bool await_ready() { return false; }
     std::coroutine_handle<> await_suspend(std::coroutine_handle<> handle)
     {
-        task.mHandle.promise().awaiter = handle; 
-        return task.mHandle;   
+        async.mHandle.promise().awaiter = handle; 
+        return async.mHandle;   
     }
     void await_resume() {}
 
-    Task<void> &task;
+    Async<void> &async;
 };
 
 #endif

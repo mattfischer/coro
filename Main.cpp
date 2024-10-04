@@ -1,10 +1,10 @@
-#include "Task.hpp"
+#include "Async.hpp"
 #include "Executor.hpp"
 #include "Future.hpp"
 
 #include <stdio.h>
 
-Task<int> taskD(Executor &executor)
+Async<int> taskD(Executor &executor)
 {
     printf("Task D beginning\n");
     co_await executor.yield();
@@ -12,7 +12,7 @@ Task<int> taskD(Executor &executor)
     co_return 5;
 }
 
-Task<void> taskA(Executor &executor, Future<int> &future)
+Async<void> taskA(Executor &executor, Future<int> &future)
 {
     for(int i=0; i<5; i++) {
         printf("Task A (%i)\n", i);
@@ -32,7 +32,7 @@ Task<void> taskA(Executor &executor, Future<int> &future)
     co_return;
 }
 
-Task<void> taskB(Executor &executor, Future<int> &future)
+Async<void> taskB(Executor &executor, Future<int> &future)
 {
     for(int i=0; i<15; i++) {
         printf("Task B (%i)\n", i);
@@ -48,7 +48,7 @@ Task<void> taskB(Executor &executor, Future<int> &future)
     co_return;
 }
 
-Task<void> taskC(Executor &executor, Future<int> &future)
+Async<void> taskC(Executor &executor, Future<int> &future)
 {
     using namespace std::chrono_literals;
  
