@@ -22,13 +22,10 @@ class Executor {
         template<typename Rep, typename Period> SleepAwaitable sleep_for(const std::chrono::duration<Rep, Period> &duration);
 
     private:
-        struct RunHelper;
-        template<typename Awaitable> RunHelper runAwaitable(Awaitable awaitable);
-
-        void cleanupHandle(std::coroutine_handle<> handle);
+        struct AsyncRunner;
+        template<typename Awaitable> AsyncRunner runAwaitable(Awaitable awaitable);
 
         std::queue<std::coroutine_handle<>> mReadyQueue;
-        std::vector<std::coroutine_handle<>> mCleanupHandles;
 
         struct LaterEntry {
             std::coroutine_handle<> handle;
@@ -58,23 +55,19 @@ struct Executor::SleepAwaitable {
     std::chrono::steady_clock::time_point wakeup;
 };
 
-struct Executor::RunHelper {
+struct Executor::AsyncRunner {
     struct promise_type {
         struct FinalAwaiter {
             bool await_ready() noexcept { return false; }
-            void await_suspend(std::coroutine_handle<> handle) noexcept { executor->cleanupHandle(handle); }
+            void await_suspend(std::coroutine_handle<> handle) noexcept { handle.destroy(); }
             void await_resume() noexcept {}
-
-            Executor *executor;
         };
 
-        RunHelper get_return_object() { return { std::coroutine_handle<promise_type>::from_promise(*this) }; }
+        AsyncRunner get_return_object() { return { std::coroutine_handle<promise_type>::from_promise(*this) }; }
         std::suspend_always initial_suspend() noexcept { return {}; }
-        FinalAwaiter final_suspend() noexcept { return { executor }; }
+        FinalAwaiter final_suspend() noexcept { return {}; }
         void return_void() {}
         void unhandled_exception() {}
-
-        Executor *executor;
     };
 
     std::coroutine_handle<promise_type> handle;
@@ -82,13 +75,12 @@ struct Executor::RunHelper {
 
 template<typename Awaitable> void Executor::runAsync(Awaitable&& awaitable)
 { 
-    RunHelper helper = runAwaitable<Awaitable>(std::forward<Awaitable>(awaitable));
-    helper.handle.promise().executor = this;
+    AsyncRunner helper = runAwaitable<Awaitable>(std::forward<Awaitable>(awaitable));
 
     enqueue(helper.handle);
 }
 
-template<typename Awaitable> Executor::RunHelper Executor::runAwaitable(Awaitable awaitable) {
+template<typename Awaitable> Executor::AsyncRunner Executor::runAwaitable(Awaitable awaitable) {
     co_await awaitable;
     co_return;
 }

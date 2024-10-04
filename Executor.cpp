@@ -25,22 +25,10 @@ void Executor::exec()
         } else {
             break;
         }
-
-        if(mCleanupHandles.size() > 0) {
-            for(auto &handle : mCleanupHandles) {
-                handle.destroy();
-            }
-            mCleanupHandles.clear();
-        }
     }
 }
 
 Executor::YieldAwaitable Executor::yield()
 {
     return YieldAwaitable(*this);
-}
-
-void Executor::cleanupHandle(std::coroutine_handle<> handle)
-{
-    mCleanupHandles.push_back(handle);
 }
