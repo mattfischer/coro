@@ -16,16 +16,17 @@ class Executor {
         void exec();
 
         struct YieldAwaitable;
-        YieldAwaitable yield();
+        static YieldAwaitable yield();
 
         struct SleepAwaitable;
-        template<typename Rep, typename Period> SleepAwaitable sleep_for(const std::chrono::duration<Rep, Period> &duration);
+        template<typename Rep, typename Period> static SleepAwaitable sleep_for(const std::chrono::duration<Rep, Period> &duration);
 
     private:
         struct AsyncRunner;
         template<typename Awaitable> AsyncRunner runAwaitable(Awaitable awaitable);
 
         std::queue<std::coroutine_handle<>> mReadyQueue;
+        static Executor *sCurrent;
 
         struct LaterEntry {
             std::coroutine_handle<> handle;
@@ -88,7 +89,7 @@ template<typename Awaitable> Executor::AsyncRunner Executor::runAwaitable(Awaita
 template<typename Rep, typename Period> Executor::SleepAwaitable Executor::sleep_for(const std::chrono::duration<Rep, Period> &duration)
 {
     std::chrono::steady_clock::time_point wakeup = std::chrono::steady_clock::now() + duration;
-    return { *this, wakeup };
+    return { *sCurrent, wakeup };
 }
 
 #endif

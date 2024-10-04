@@ -4,15 +4,15 @@
 
 #include <stdio.h>
 
-Async<int> taskD(Executor &executor)
+Async<int> taskD()
 {
     printf("Task D beginning\n");
-    co_await executor.yield();
+    co_await Executor::yield();
     printf("Task D returning value\n");
     co_return 5;
 }
 
-Async<void> taskA(Executor &executor, Future<int> &future)
+Async<void> taskA(Future<int> &future)
 {
     for(int i=0; i<5; i++) {
         printf("Task A (%i)\n", i);
@@ -21,18 +21,18 @@ Async<void> taskA(Executor &executor, Future<int> &future)
             int result = co_await future;
             printf("...Task A resume (future returned %i)\n", result);
         } else {
-            co_await executor.yield();
+            co_await Executor::yield();
         }
     }
 
     printf("Task A awaiting from D\n");
-    int result = co_await taskD(executor);
+    int result = co_await taskD();
     printf("Task A received %i\n", result);
 
     co_return;
 }
 
-Async<void> taskB(Executor &executor, Future<int> &future)
+Async<void> taskB(Future<int> &future)
 {
     for(int i=0; i<15; i++) {
         printf("Task B (%i)\n", i);
@@ -41,14 +41,14 @@ Async<void> taskB(Executor &executor, Future<int> &future)
             int result = co_await future;
             printf("...Task B resume (future returned %i)\n", result);
         } else {
-            co_await executor.yield();
+            co_await Executor::yield();
         }
     }
 
     co_return;
 }
 
-Async<void> taskC(Executor &executor, Future<int> &future)
+Async<void> taskC(Future<int> &future)
 {
     using namespace std::chrono_literals;
  
@@ -58,11 +58,11 @@ Async<void> taskC(Executor &executor, Future<int> &future)
             printf("...complete future\n");
             future.complete(10);
         }
-        co_await executor.yield();
+        co_await Executor::yield();
     }
 
     printf("Task C sleeping...\n");
-    co_await executor.sleep_for(1s);
+    co_await Executor::sleep_for(1s);
     printf("...Task C done with sleep\n");
 
     co_return;
@@ -73,9 +73,9 @@ int main(int argc, char *argv[])
     Executor executor;
     Future<int> future(executor);
 
-    executor.runAsync(taskA(executor, future));
-    executor.runAsync(taskB(executor, future));
-    executor.runAsync(taskC(executor, future));
+    executor.runAsync(taskA(future));
+    executor.runAsync(taskB(future));
+    executor.runAsync(taskC(future));
 
     executor.exec();
 

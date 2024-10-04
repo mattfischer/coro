@@ -2,6 +2,8 @@
 
 #include <thread>
 
+Executor *Executor::sCurrent = nullptr;
+
 void Executor::enqueue(std::coroutine_handle<> handle)
 {
     mReadyQueue.push(handle);
@@ -14,6 +16,7 @@ void Executor::enqueueLater(std::coroutine_handle<> handle, std::chrono::steady_
 
 void Executor::exec()
 {
+    sCurrent = this;
     while(true) {
         if(mReadyQueue.size() > 0) {
             mReadyQueue.front().resume();
@@ -26,9 +29,10 @@ void Executor::exec()
             break;
         }
     }
+    sCurrent = nullptr;
 }
 
 Executor::YieldAwaitable Executor::yield()
 {
-    return YieldAwaitable(*this);
+    return YieldAwaitable(*sCurrent);
 }
