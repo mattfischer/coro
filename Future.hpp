@@ -13,15 +13,20 @@ public:
         mReady = false;
     }
 
-    bool await_ready() { return mReady; }
-    void await_suspend(std::coroutine_handle<> handle) 
-    { 
-        Task *task = Task::current();
-        task->suspend(handle);
-        mAwaiters.push_back(task);
-    }
+    struct Awaitable {
+        bool await_ready() { return future.mReady; }
+        void await_suspend(std::coroutine_handle<> handle) 
+        { 
+            Task *task = Task::current();
+            task->suspend(handle);
+            future.mAwaiters.push_back(task);
+        }
 
-    ReturnType await_resume() { return mReturnValue; }
+        ReturnType await_resume() { return future.mReturnValue; }
+
+        Future &future;
+    };
+    Awaitable operator co_await() { return { *this }; }
 
     void complete(ReturnType returnValue)
     {
@@ -47,13 +52,18 @@ public:
         mReady = false;
     }
 
-    bool await_ready() { return mReady; }
-    void await_suspend(std::coroutine_handle<> handle) {
-        Task *task = Task::current();
-        task->suspend(handle);
-        mAwaiters.push_back(task);
-    }
-    void await_resume() {}
+    struct Awaitable {
+        bool await_ready() { return future.mReady; }
+        void await_suspend(std::coroutine_handle<> handle) {
+            Task *task = Task::current();
+            task->suspend(handle);
+            future.mAwaiters.push_back(task);
+        }
+        void await_resume() {}
+
+        Future<void> &future;
+    };
+    Awaitable operator co_await() { return { *this }; }
 
     void complete()
     {

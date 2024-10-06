@@ -6,13 +6,13 @@
 template<typename ReturnType> class Async {
 public:
     struct Promise;
-    struct Awaiter;
-    struct FinalAwaiter;
+    struct Awaitable;
+    struct FinalAwaitable;
 
     using promise_type = Promise;
     using CoroutineHandle = std::coroutine_handle<Promise>;
 
-    Awaiter operator co_await() { return { *this }; }
+    Awaitable operator co_await() { return { *this }; }
 
     Async(CoroutineHandle handle)
     : mHandle(handle)
@@ -51,7 +51,7 @@ private:
 template<typename ReturnType> struct Async<ReturnType>::Promise {
     Async<ReturnType> get_return_object() { return Async<ReturnType>(CoroutineHandle::from_promise(*this)); }
     std::suspend_always initial_suspend() noexcept { return {}; }
-    FinalAwaiter final_suspend() noexcept { return { awaiter }; }
+    FinalAwaitable final_suspend() noexcept { return { awaiter }; }
     void return_value(ReturnType value) { returnValue = value; }
     void unhandled_exception() {}
 
@@ -62,14 +62,14 @@ template<typename ReturnType> struct Async<ReturnType>::Promise {
 template<> struct Async<void>::Promise {
     Async<void> get_return_object() { return Async<void>(CoroutineHandle::from_promise(*this)); }
     std::suspend_always initial_suspend() noexcept { return {}; }
-    Async<void>::FinalAwaiter final_suspend() noexcept { return { awaiter }; }
+    Async<void>::FinalAwaitable final_suspend() noexcept { return { awaiter }; }
     void return_void() {}
     void unhandled_exception() {}
 
     std::coroutine_handle<> awaiter = std::noop_coroutine();
 };
 
-template<typename ReturnType> struct Async<ReturnType>::FinalAwaiter {
+template<typename ReturnType> struct Async<ReturnType>::FinalAwaitable {
     bool await_ready() noexcept { return false; }
     std::coroutine_handle<> await_suspend(std::coroutine_handle<>) noexcept { return resumeHandle; }
     void await_resume() noexcept {}
@@ -77,7 +77,7 @@ template<typename ReturnType> struct Async<ReturnType>::FinalAwaiter {
     std::coroutine_handle<> resumeHandle;
 };
 
-template<typename ReturnType> struct Async<ReturnType>::Awaiter {
+template<typename ReturnType> struct Async<ReturnType>::Awaitable {
     bool await_ready() { return false; }
     std::coroutine_handle<> await_suspend(std::coroutine_handle<> handle)
     {
@@ -89,7 +89,7 @@ template<typename ReturnType> struct Async<ReturnType>::Awaiter {
     Async<ReturnType> &async;
 };
 
-template<> struct Async<void>::Awaiter {
+template<> struct Async<void>::Awaitable {
     bool await_ready() { return false; }
     std::coroutine_handle<> await_suspend(std::coroutine_handle<> handle)
     {
