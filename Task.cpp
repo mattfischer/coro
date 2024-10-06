@@ -1,6 +1,6 @@
 #include "Task.hpp"
 
-Task *Task::sCurrentTask = nullptr;
+Task *Task::sCurrent = nullptr;
 
 Task::Task(std::coroutine_handle<> handle, Executor &executor)
 : mExecutor(executor)
@@ -20,11 +20,11 @@ Executor &Task::executor()
 
 void Task::run()
 {
-    sCurrentTask = this;
+    sCurrent = this;
 
     mResumeHandle.resume();
 
-    sCurrentTask = nullptr;
+    sCurrent = nullptr;
 
     if(mStartHandle.done()) {
         delete this;
@@ -43,10 +43,10 @@ void Task::enqueueResume()
 
 Task *Task::current()
 {
-    return sCurrentTask;
+    return sCurrent;
 }
 
 Task::YieldAwaitable Task::yield()
 {
-    return YieldAwaitable(sCurrentTask);
+    return YieldAwaitable(current());
 }

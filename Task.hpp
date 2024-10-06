@@ -9,8 +9,6 @@
 
 class Task {
 public:
-    ~Task();
-
     Executor &executor();
     void run();
 
@@ -29,19 +27,28 @@ public:
     static YieldAwaitable yield();
 
     struct SleepAwaitable;
-    template<typename Rep, typename Period> static SleepAwaitable sleep_for(const std::chrono::duration<Rep, Period> &duration);
+    template<typename Rep, typename Period> static SleepAwaitable sleep_for(const std::chrono::duration<Rep, Period> &duration)
+    {
+        std::chrono::steady_clock::time_point wakeup = std::chrono::steady_clock::now() + duration;
+        return { current(), wakeup };
+    }
 
 private:
     Task(std::coroutine_handle<> handle, Executor &executor);
-
-    struct AsyncRunner;
-    template<typename ReturnType> static AsyncRunner runAsync(Async<ReturnType> async);
+    ~Task();
 
     Executor &mExecutor;
     std::coroutine_handle<> mStartHandle;
     std::coroutine_handle<> mResumeHandle;
 
-    static Task *sCurrentTask;
+    static Task *sCurrent;
+
+    struct AsyncRunner;
+    template<typename ReturnType> static AsyncRunner runAsync(Async<ReturnType> async)
+    {
+        co_await async;
+        co_return;
+    }
 };
 
 struct Task::YieldAwaitable {
@@ -80,16 +87,5 @@ struct Task::AsyncRunner {
 
     std::coroutine_handle<> handle;
 };
-
-template<typename ReturnType> Task::AsyncRunner Task::runAsync(Async<ReturnType> async) {
-    co_await async;
-    co_return;
-}
-
-template<typename Rep, typename Period> Task::SleepAwaitable Task::sleep_for(const std::chrono::duration<Rep, Period> &duration)
-{
-    std::chrono::steady_clock::time_point wakeup = std::chrono::steady_clock::now() + duration;
-    return { sCurrentTask, wakeup };
-}
 
 #endif
