@@ -36,6 +36,7 @@ public:
         {
             task->enqueueResume();
         }
+        mAwaiters.clear();
     }
 
 private:
@@ -72,6 +73,7 @@ public:
         {
             task->enqueueResume();
         }
+        mAwaiters.clear();
     }
 
 private:
