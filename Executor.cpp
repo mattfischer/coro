@@ -1,38 +1,42 @@
 #include "Executor.hpp"
 
+#include "Task.hpp"
+
 #include <thread>
 
-Executor *Executor::sCurrent = nullptr;
-
-void Executor::enqueue(std::coroutine_handle<> handle)
+void Executor::enqueueTask(Task *task)
 {
-    mReadyQueue.push(handle);
+    mReadyQueue.push(task);
 }
 
-void Executor::enqueueLater(std::coroutine_handle<> handle, std::chrono::steady_clock::time_point wakeup)
+void Executor::enqueueTaskLater(Task *task, std::chrono::steady_clock::time_point wakeup)
 {
-    mLaterQueue.emplace(handle, wakeup);
+    mLaterQueue.emplace(task, wakeup);
 }
 
 void Executor::exec()
 {
-    sCurrent = this;
     while(true) {
+        Task *task = nullptr;
+
         if(mReadyQueue.size() > 0) {
-            mReadyQueue.front().resume();
+            task = mReadyQueue.front();
             mReadyQueue.pop();
         } else if(mLaterQueue.size() > 0) {
             std::this_thread::sleep_until(mLaterQueue.top().wakeup);
-            mLaterQueue.top().handle.resume();
-            mLaterQueue.pop();
+            task = mLaterQueue.top().task;
+            mLaterQueue.pop();          
         } else {
             break;
         }
+
+        task->run();
     }
-    sCurrent = nullptr;
 }
 
-Executor::YieldAwaitable Executor::yield()
+Executor &Executor::defaultExecutor()
 {
-    return YieldAwaitable(*sCurrent);
+    static Executor defaultExecutor;
+
+    return defaultExecutor;
 }

@@ -1,68 +1,72 @@
 #ifndef FUTURE_HPP
 #define FUTURE_HPP
 
-#include "Executor.hpp"
+#include "Task.hpp"
 
 #include <vector>
 
 template<typename ReturnType>
 class Future {
 public:
-    Future(Executor &executor)
-    : mExecutor(executor)
+    Future()
     {
         mReady = false;
     }
 
-
     bool await_ready() { return mReady; }
-    void await_suspend(std::coroutine_handle<> handle) { mAwaiters.push_back(handle); }
+    void await_suspend(std::coroutine_handle<> handle) 
+    { 
+        Task *task = Task::current();
+        task->suspend(handle);
+        mAwaiters.push_back(task);
+    }
+
     ReturnType await_resume() { return mReturnValue; }
 
     void complete(ReturnType returnValue)
     {
         mReady = true;
         mReturnValue = returnValue;
-        for(auto &awaiter : mAwaiters)
+        for(Task *task : mAwaiters)
         {
-            mExecutor.enqueue(awaiter);
+            task->enqueueResume();
         }
     }
 
 private:
     bool mReady;
-    Executor &mExecutor;
     ReturnType mReturnValue;
-    std::vector<std::coroutine_handle<>> mAwaiters;
+    std::vector<Task*> mAwaiters;
 };
 
 template<>
 class Future<void> {
 public:
-    Future(Executor &executor)
-    : mExecutor(executor)
+    Future()
     {
         mReady = false;
     }
 
-
     bool await_ready() { return mReady; }
-    void await_suspend(std::coroutine_handle<> handle) { mAwaiters.push_back(handle); }
+    void await_suspend(std::coroutine_handle<> handle) {
+        Task *task = Task::current();
+        task->suspend(handle);
+        mAwaiters.push_back(task);
+    }
     void await_resume() {}
 
     void complete()
     {
         mReady = true;
-        for(auto &awaiter : mAwaiters)
+        for(Task *task : mAwaiters)
         {
-            mExecutor.enqueue(awaiter);
+            task->enqueueResume();
         }
     }
 
 private:
     bool mReady;
-    Executor &mExecutor;
-    std::vector<std::coroutine_handle<>> mAwaiters;
+    std::vector<Task*> mAwaiters;
 };
 
 #endif

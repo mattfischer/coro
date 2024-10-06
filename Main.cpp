@@ -1,5 +1,5 @@
 #include "Async.hpp"
-#include "Executor.hpp"
+#include "Task.hpp"
 #include "Future.hpp"
 
 #include <stdio.h>
@@ -7,7 +7,7 @@
 Async<int> taskD()
 {
     printf("Task D beginning\n");
-    co_await Executor::yield();
+    co_await Task::yield();
     printf("Task D returning value\n");
     co_return 5;
 }
@@ -21,7 +21,7 @@ Async<void> taskA(Future<int> &future)
             int result = co_await future;
             printf("...Task A resume (future returned %i)\n", result);
         } else {
-            co_await Executor::yield();
+            co_await Task::yield();
         }
     }
 
@@ -41,7 +41,7 @@ Async<void> taskB(Future<int> &future)
             int result = co_await future;
             printf("...Task B resume (future returned %i)\n", result);
         } else {
-            co_await Executor::yield();
+            co_await Task::yield();
         }
     }
 
@@ -58,11 +58,11 @@ Async<void> taskC(Future<int> &future)
             printf("...complete future\n");
             future.complete(10);
         }
-        co_await Executor::yield();
+        co_await Task::yield();
     }
 
     printf("Task C sleeping...\n");
-    co_await Executor::sleep_for(1s);
+    co_await Task::sleep_for(1s);
     printf("...Task C done with sleep\n");
 
     co_return;
@@ -70,14 +70,13 @@ Async<void> taskC(Future<int> &future)
 
 int main(int argc, char *argv[])
 {
-    Executor executor;
-    Future<int> future(executor);
+    Future<int> future;
 
-    executor.runAsync(taskA(future));
-    executor.runAsync(taskB(future));
-    executor.runAsync(taskC(future));
+    Task::start(taskA(future));
+    Task::start(taskB(future));
+    Task::start(taskC(future));
 
-    executor.exec();
+    Executor::defaultExecutor().exec();
 
     return 0;
 }
