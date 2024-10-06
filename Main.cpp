@@ -70,13 +70,14 @@ Async<void> taskC(Future<int> &future)
 
 int main(int argc, char *argv[])
 {
+    Executor executor;
     Future<int> future;
 
-    Task::start(taskA(future));
-    Task::start(taskB(future));
-    Task::start(taskC(future));
+    Task::start(taskA(future), executor);
+    Task::start(taskB(future), executor);
+    Task::start(taskC(future), executor);
 
-    Executor::defaultExecutor().exec();
+    executor.exec();
 
     return 0;
 }

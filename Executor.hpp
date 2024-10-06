@@ -15,8 +15,6 @@ class Executor {
 
         void exec();
 
-        static Executor &defaultExecutor();
-
     private:
         std::queue<Task*> mReadyQueue;
 

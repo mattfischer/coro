@@ -33,10 +33,3 @@ void Executor::exec()
         task->run();
     }
 }
-
-Executor &Executor::defaultExecutor()
-{
-    static Executor defaultExecutor;
-
-    return defaultExecutor;
-}

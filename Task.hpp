@@ -15,10 +15,10 @@ public:
     void suspend(std::coroutine_handle<> resumeHandle);
     void enqueueResume();
 
-    template<typename ReturnType> static void start(Async<ReturnType>&& async) {
+    template<typename ReturnType> static void start(Async<ReturnType>&& async, Executor &executor) {
         AsyncRunner runner = runAsync<ReturnType>(std::forward<Async<ReturnType>>(async));
-        Task *task = new Task(runner.handle, Executor::defaultExecutor());
-        task->executor().enqueueTask(task);
+        Task *task = new Task(runner.handle, executor);
+        executor.enqueueTask(task);
     }
 
     static Task *current();
