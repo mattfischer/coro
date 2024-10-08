@@ -17,19 +17,17 @@ void Executor::enqueueTaskLater(Task *task, std::chrono::steady_clock::time_poin
 void Executor::exec()
 {
     while(true) {
-        Task *task = nullptr;
-
         if(mReadyQueue.size() > 0) {
-            task = mReadyQueue.front();
+            Task *task = mReadyQueue.front();
             mReadyQueue.pop();
+
+            task->run();   
         } else if(mLaterQueue.size() > 0) {
             std::this_thread::sleep_until(mLaterQueue.top().wakeup);
-            task = mLaterQueue.top().task;
-            mLaterQueue.pop();          
+            mReadyQueue.push(mLaterQueue.top().task);
+            mLaterQueue.pop();
         } else {
             break;
         }
-
-        task->run();
     }
 }
