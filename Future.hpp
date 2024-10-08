@@ -4,6 +4,7 @@
 #include "Task.hpp"
 
 #include <vector>
+#include <mutex>
 
 template<typename ReturnType>
 class Future {
@@ -14,14 +15,27 @@ public:
     }
 
     struct Awaitable {
-        bool await_ready() { return future.mReady; }
+        bool await_ready()
+        {
+            std::lock_guard<std::mutex> lock(future.mMutex);
+
+            return future.mReady;
+        }
+
         void await_suspend(std::coroutine_handle<> handle) 
         { 
+            std::lock_guard<std::mutex> lock(future.mMutex);
+
             Task *task = Task::suspend(handle);
             future.mAwaiters.push_back(task);
         }
 
-        ReturnType await_resume() { return future.mReturnValue; }
+        ReturnType await_resume()
+        {
+            std::lock_guard<std::mutex> lock(future.mMutex);
+
+            return future.mReturnValue;
+        }
 
         Future &future;
     };
@@ -29,6 +43,8 @@ public:
 
     void complete(ReturnType returnValue)
     {
+        std::lock_guard<std::mutex> lock(mMutex);
+
         mReady = true;
         mReturnValue = returnValue;
         for(Task *task : mAwaiters)
@@ -42,6 +58,7 @@ private:
     bool mReady;
     ReturnType mReturnValue;
     std::vector<Task*> mAwaiters;
+    std::mutex mMutex;
 };
 
 template<>
@@ -53,11 +70,21 @@ public:
     }
 
     struct Awaitable {
-        bool await_ready() { return future.mReady; }
-        void await_suspend(std::coroutine_handle<> handle) {
+        bool await_ready()
+        {
+            std::lock_guard<std::mutex> lock(future.mMutex);
+
+            return future.mReady;
+        }
+
+        void await_suspend(std::coroutine_handle<> handle)
+        {
+            std::lock_guard<std::mutex> lock(future.mMutex);
+
             Task *task = Task::suspend(handle);
             future.mAwaiters.push_back(task);
         }
+
         void await_resume() {}
 
         Future<void> &future;
@@ -66,6 +93,8 @@ public:
 
     void complete()
     {
+        std::lock_guard<std::mutex> lock(mMutex);
+
         mReady = true;
         for(Task *task : mAwaiters)
         {
@@ -77,6 +106,7 @@ public:
 private:
     bool mReady;
     std::vector<Task*> mAwaiters;
+    std::mutex mMutex;
 };
 
 #endif

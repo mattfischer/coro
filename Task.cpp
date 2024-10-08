@@ -1,6 +1,6 @@
 #include "Task.hpp"
 
-Task *Task::sCurrent = nullptr;
+thread_local Task *Task::sCurrent = nullptr;
 
 Task::Task(std::coroutine_handle<> handle, Executor &executor)
 : mExecutor(executor)
@@ -33,7 +33,7 @@ void Task::run()
 
 Task *Task::suspend(std::coroutine_handle<> resumeHandle)
 {
-    Task *task = current();
+    Task *task = sCurrent;
     task->mResumeHandle = resumeHandle;
 
     return task;
@@ -42,11 +42,6 @@ Task *Task::suspend(std::coroutine_handle<> resumeHandle)
 void Task::enqueueResume()
 {
     mExecutor.enqueueTask(this);
-}
-
-Task *Task::current()
-{
-    return sCurrent;
 }
 
 Task::YieldAwaitable Task::yield()

@@ -20,7 +20,6 @@ public:
         executor.enqueueTask(task);
     }
 
-    static Task *current();
     static Task *suspend(std::coroutine_handle<> resumeHandle);
 
     struct YieldAwaitable;
@@ -41,7 +40,7 @@ private:
     std::coroutine_handle<> mStartHandle;
     std::coroutine_handle<> mResumeHandle;
 
-    static Task *sCurrent;
+    static thread_local Task *sCurrent;
 
     struct AsyncRunner;
     template<typename ReturnType> static AsyncRunner runAsync(Async<ReturnType> async)

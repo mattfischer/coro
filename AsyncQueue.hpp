@@ -3,6 +3,7 @@
 
 #include "Task.hpp"
 
+#include <mutex>
 #include <queue>
 
 template<typename ElementType>
@@ -14,6 +15,8 @@ public:
 
     void enqueue(ElementType element)
     {
+        std::lock_guard<std::mutex> lock(mMutex);
+
         if(mAwaitableQueue.size() > 0) {
             Awaitable *awaitable = mAwaitableQueue.front();
             mAwaitableQueue.pop();
@@ -28,12 +31,15 @@ public:
 private:
     std::queue<ElementType> mElementQueue;
     std::queue<Awaitable*> mAwaitableQueue;
+    std::mutex mMutex;
 };
 
 template<typename ElementType>
 struct AsyncQueue<ElementType>::Awaitable {
     bool await_ready()
     {
+        std::lock_guard<std::mutex> lock(queue.mMutex);
+
         if(queue.mElementQueue.size() > 0) {
             element = queue.mElementQueue.front();
             queue.mElementQueue.pop();
@@ -45,6 +51,8 @@ struct AsyncQueue<ElementType>::Awaitable {
 
     void await_suspend(std::coroutine_handle<> resumeHandle)
     {
+        std::lock_guard<std::mutex> lock(queue.mMutex);
+
         task = Task::suspend(resumeHandle);
         queue.mAwaitableQueue.push(this);
     }
