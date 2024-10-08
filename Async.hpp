@@ -53,22 +53,22 @@ private:
 template<typename ReturnType> struct Async<ReturnType>::Promise {
     Async<ReturnType> get_return_object() { return Async<ReturnType>(CoroutineHandle::from_promise(*this)); }
     std::suspend_always initial_suspend() noexcept { return {}; }
-    FinalAwaitable final_suspend() noexcept { return { awaiter }; }
+    FinalAwaitable final_suspend() noexcept { return { resumeHandle }; }
     void return_value(ReturnType value) { returnValue = value; }
     void unhandled_exception() {}
 
-    std::coroutine_handle<> awaiter = std::noop_coroutine();
+    std::coroutine_handle<> resumeHandle = std::noop_coroutine();
     ReturnType returnValue;
 };
 
 template<> struct Async<void>::Promise {
     Async<void> get_return_object() { return Async<void>(CoroutineHandle::from_promise(*this)); }
     std::suspend_always initial_suspend() noexcept { return {}; }
-    Async<void>::FinalAwaitable final_suspend() noexcept { return { awaiter }; }
+    Async<void>::FinalAwaitable final_suspend() noexcept { return { resumeHandle }; }
     void return_void() {}
     void unhandled_exception() {}
 
-    std::coroutine_handle<> awaiter = std::noop_coroutine();
+    std::coroutine_handle<> resumeHandle = std::noop_coroutine();
 };
 
 template<typename ReturnType> struct Async<ReturnType>::FinalAwaitable {
@@ -81,9 +81,9 @@ template<typename ReturnType> struct Async<ReturnType>::FinalAwaitable {
 
 template<typename ReturnType> struct Async<ReturnType>::Awaitable {
     bool await_ready() { return false; }
-    std::coroutine_handle<> await_suspend(std::coroutine_handle<> handle)
+    std::coroutine_handle<> await_suspend(std::coroutine_handle<> resumeHandle)
     {
-        async.mHandle.promise().awaiter = handle; 
+        async.mHandle.promise().resumeHandle = resumeHandle; 
         return async.mHandle;   
     }
     ReturnType await_resume() { return async.mHandle.promise().returnValue; }
@@ -93,9 +93,9 @@ template<typename ReturnType> struct Async<ReturnType>::Awaitable {
 
 template<> struct Async<void>::Awaitable {
     bool await_ready() { return false; }
-    std::coroutine_handle<> await_suspend(std::coroutine_handle<> handle)
+    std::coroutine_handle<> await_suspend(std::coroutine_handle<> resumeHandle)
     {
-        async.mHandle.promise().awaiter = handle; 
+        async.mHandle.promise().resumeHandle = resumeHandle; 
         return async.mHandle;   
     }
     void await_resume() {}
