@@ -45,8 +45,7 @@ struct AsyncQueue<ElementType>::Awaitable {
 
     void await_suspend(std::coroutine_handle<> resumeHandle)
     {
-        task = Task::current();
-        task->suspend(resumeHandle);
+        task = Task::suspend(resumeHandle);
         queue.mAwaitableQueue.push(this);
     }
 

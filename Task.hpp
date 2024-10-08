@@ -12,7 +12,6 @@ public:
     Executor &executor();
     void run();
 
-    void suspend(std::coroutine_handle<> resumeHandle);
     void enqueueResume();
 
     template<typename ReturnType> static void start(Async<ReturnType>&& async, Executor &executor) {
@@ -22,6 +21,7 @@ public:
     }
 
     static Task *current();
+    static Task *suspend(std::coroutine_handle<> resumeHandle);
 
     struct YieldAwaitable;
     static YieldAwaitable yield();
@@ -30,7 +30,7 @@ public:
     template<typename Rep, typename Period> static SleepAwaitable sleep_for(const std::chrono::duration<Rep, Period> &duration)
     {
         std::chrono::steady_clock::time_point wakeup = std::chrono::steady_clock::now() + duration;
-        return { current(), wakeup };
+        return { wakeup };
     }
 
 private:
@@ -56,11 +56,9 @@ struct Task::YieldAwaitable {
     void await_resume() {}
 
     void await_suspend(std::coroutine_handle<> handle) {
-        task->suspend(handle);
+        Task *task = Task::suspend(handle);
         task->executor().enqueueTask(task);
     }
-    
-    Task *task;
 };
 
 struct Task::SleepAwaitable {
@@ -68,11 +66,10 @@ struct Task::SleepAwaitable {
     void await_resume() {}
 
     void await_suspend(std::coroutine_handle<> handle) {
-        task->suspend(handle);
+        Task *task = Task::suspend(handle);
         task->executor().enqueueTaskLater(task, wakeup);
     }
     
-    Task *task;
     std::chrono::steady_clock::time_point wakeup;
 };
 

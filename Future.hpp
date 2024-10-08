@@ -17,8 +17,7 @@ public:
         bool await_ready() { return future.mReady; }
         void await_suspend(std::coroutine_handle<> handle) 
         { 
-            Task *task = Task::current();
-            task->suspend(handle);
+            Task *task = Task::suspend(handle);
             future.mAwaiters.push_back(task);
         }
 
@@ -56,8 +55,7 @@ public:
     struct Awaitable {
         bool await_ready() { return future.mReady; }
         void await_suspend(std::coroutine_handle<> handle) {
-            Task *task = Task::current();
-            task->suspend(handle);
+            Task *task = Task::suspend(handle);
             future.mAwaiters.push_back(task);
         }
         void await_resume() {}

@@ -40,8 +40,7 @@ public:
 
     bool await_ready() { return false; }
     void await_suspend(std::coroutine_handle<> resumeHandle) {
-        mAwaiter = Task::current();
-        mAwaiter->suspend(resumeHandle);
+        mAwaiter = Task::suspend(resumeHandle);
         mRunner.mQueue.enqueue(this);
     }
     ReturnType await_resume() { return mReturnValue; }
@@ -68,8 +67,7 @@ public:
 
     bool await_ready() { return false; }
     void await_suspend(std::coroutine_handle<> resumeHandle) {
-        mAwaiter = Task::current();
-        mAwaiter->suspend(resumeHandle);
+        mAwaiter = Task::suspend(resumeHandle);
         mRunner.mQueue.enqueue(this);
     }
     void await_resume() {}

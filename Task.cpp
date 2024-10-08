@@ -31,9 +31,12 @@ void Task::run()
     }
 }
 
-void Task::suspend(std::coroutine_handle<> resumeHandle)
+Task *Task::suspend(std::coroutine_handle<> resumeHandle)
 {
-    mResumeHandle = resumeHandle;
+    Task *task = current();
+    task->mResumeHandle = resumeHandle;
+
+    return task;
 }
 
 void Task::enqueueResume()
@@ -48,5 +51,5 @@ Task *Task::current()
 
 Task::YieldAwaitable Task::yield()
 {
-    return YieldAwaitable(current());
+    return YieldAwaitable();
 }
