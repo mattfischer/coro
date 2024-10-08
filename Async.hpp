@@ -39,9 +39,11 @@ public:
         }
     }
 
-    const CoroutineHandle &handle() const
+    CoroutineHandle releaseHandle()
     {
-        return mHandle;
+        CoroutineHandle result = mHandle;
+        mHandle = CoroutineHandle();
+        return result;
     }
 
 private:

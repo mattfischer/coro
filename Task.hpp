@@ -13,9 +13,8 @@ public:
 
     void enqueueResume();
 
-    template<typename ReturnType> static void start(Async<ReturnType>&& async, Executor &executor) {
-        AsyncRunner runner = runAsync<ReturnType>(std::forward<Async<ReturnType>>(async));
-        Task *task = new Task(runner.handle, executor);
+    template<typename ReturnType> static void start(Async<ReturnType> async, Executor &executor) {
+        Task *task = new Task(async.releaseHandle(), executor);
         executor.enqueueTask(task);
     }
 
@@ -40,13 +39,6 @@ private:
     std::coroutine_handle<> mResumeHandle;
 
     static thread_local Task *sCurrent;
-
-    struct AsyncRunner;
-    template<typename ReturnType> static AsyncRunner runAsync(Async<ReturnType> async)
-    {
-        co_await async;
-        co_return;
-    }
 };
 
 struct Task::YieldAwaitable {
@@ -69,18 +61,6 @@ struct Task::SleepAwaitable {
     }
     
     std::chrono::steady_clock::time_point wakeup;
-};
-
-struct Task::AsyncRunner {
-    struct promise_type {
-        AsyncRunner get_return_object() { return { std::coroutine_handle<promise_type>::from_promise(*this) }; }
-        std::suspend_always initial_suspend() noexcept { return {}; }
-        std::suspend_always final_suspend() noexcept { return {}; }
-        void return_void() {}
-        void unhandled_exception() {}
-    };
-
-    std::coroutine_handle<> handle;
 };
 
 #endif
