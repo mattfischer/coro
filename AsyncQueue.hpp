@@ -14,49 +14,50 @@ public:
 
     void enqueue(ElementType element)
     {
-        mQueue.push(element);
+        if(mAwaitableQueue.size() > 0) {
+            Awaitable *awaitable = mAwaitableQueue.front();
+            mAwaitableQueue.pop();
 
-        if(mAwaiters.size() > 0) {
-            Task *task = mAwaiters.front();
-            mAwaiters.pop();
-            task->enqueueResume();
+            awaitable->element = element;
+            awaitable->task->enqueueResume();
+        } else {
+            mElementQueue.push(element);
         }
     }
 
 private:
-    std::queue<ElementType> mQueue;
-    std::queue<Task*> mAwaiters;
+    std::queue<ElementType> mElementQueue;
+    std::queue<Awaitable*> mAwaitableQueue;
 };
 
 template<typename ElementType>
 struct AsyncQueue<ElementType>::Awaitable {
     bool await_ready()
     {
-        return queue.mQueue.size() > 0;
+        if(queue.mElementQueue.size() > 0) {
+            element = queue.mElementQueue.front();
+            queue.mElementQueue.pop();
+            return true;
+        } else {
+            return false;
+        }
     }
 
     void await_suspend(std::coroutine_handle<> resumeHandle)
     {
-        Task *task = Task::current();
+        task = Task::current();
         task->suspend(resumeHandle);
-        queue.mAwaiters.push(task);
+        queue.mAwaitableQueue.push(this);
     }
 
     ElementType await_resume()
     {
-        ElementType result = queue.mQueue.front();
-        queue.mQueue.pop();
-
-        if(queue.mAwaiters.size() > 0 && queue.mQueue.size() > 0) {
-            Task *task = queue.mAwaiters.front();
-            queue.mAwaiters.pop();
-            task->enqueueResume();
-        }
-
-        return result;
+        return element;
     }
 
-AsyncQueue &queue;
+    AsyncQueue &queue;
+    Task *task;
+    ElementType element;
 };
 
 #endif
