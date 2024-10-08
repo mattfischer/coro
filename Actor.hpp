@@ -1,47 +1,47 @@
-#ifndef SERIAL_RUNNER_HPP
-#define SERIAL_RUNNER_HPP
+#ifndef ACTOR_HPP
+#define ACTOR_HPP
 
 #include "Async.hpp"
 #include "Task.hpp"
 #include "Executor.hpp"
-#include "AsyncQueue.hpp"
+#include "Queue.hpp"
 
-class SerialRunner {
+class Actor {
 public:
-    SerialRunner(Executor &executor) {
+    Actor(Executor &executor) {
         Task::start(runLoop(), executor);
     }
 
     struct RunItem;
     template<typename ReturnType> struct Awaitable;
 
-    template<typename ReturnType> Awaitable<ReturnType> runAsync(Async<ReturnType>&& async) {
-        Awaitable<ReturnType> awaitable(*this, std::forward<Async<ReturnType>>(async));
+    template<typename ReturnType> Awaitable<ReturnType> run(Async<ReturnType> async) {
+        Awaitable<ReturnType> awaitable(*this, std::move(async));
 
         return awaitable;
     }
 
 private:
-    AsyncQueue<RunItem*> mQueue;
+    Queue<RunItem*> mQueue;
     Async<void> runLoop();
 };
 
-struct SerialRunner::RunItem {
+struct Actor::RunItem {
     virtual Async<void> run() = 0;
 };
 
-template<typename ReturnType> class SerialRunner::Awaitable : public RunItem
+template<typename ReturnType> class Actor::Awaitable : public RunItem
 {
 public:
-    Awaitable(SerialRunner &runner, Async<ReturnType>&& async)
-    : mRunner(runner), mAsync(std::forward<Async<ReturnType>>(async))
+    Awaitable(Actor &actor, Async<ReturnType> async)
+    : mActor(actor), mAsync(std::move(async))
     {
     }
 
     bool await_ready() { return false; }
     void await_suspend(std::coroutine_handle<> resumeHandle) {
         mAwaiter = Task::suspend(resumeHandle);
-        mRunner.mQueue.enqueue(this);
+        mActor.mQueue.enqueue(this);
     }
     ReturnType await_resume() { return mReturnValue; }
 
@@ -52,23 +52,23 @@ public:
 
 private:
     Task *mAwaiter;
-    SerialRunner &mRunner;
+    Actor &mActor;
     Async<ReturnType> mAsync;
     ReturnType mReturnValue;
 };
 
-template<> class SerialRunner::Awaitable<void> : public RunItem
+template<> class Actor::Awaitable<void> : public RunItem
 {
 public:
-    Awaitable(SerialRunner &runner, Async<void>&& async)
-    : mRunner(runner), mAsync(std::forward<Async<void>>(async))
+    Awaitable(Actor &actor, Async<void>&& async)
+    : mActor(actor), mAsync(std::forward<Async<void>>(async))
     {
     }
 
     bool await_ready() { return false; }
     void await_suspend(std::coroutine_handle<> resumeHandle) {
         mAwaiter = Task::suspend(resumeHandle);
-        mRunner.mQueue.enqueue(this);
+        mActor.mQueue.enqueue(this);
     }
     void await_resume() {}
 
@@ -79,11 +79,11 @@ public:
 
 private:
     Task *mAwaiter;
-    SerialRunner &mRunner;
+    Actor &mActor;
     Async<void> mAsync;
 };
 
-Async<void> SerialRunner::runLoop() {
+Async<void> Actor::runLoop() {
     while(true) {
         RunItem *item = co_await mQueue;
         co_await item->run();

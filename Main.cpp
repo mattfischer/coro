@@ -1,7 +1,7 @@
 #include "Async.hpp"
 #include "Task.hpp"
 #include "Future.hpp"
-#include "SerialRunner.hpp"
+#include "Actor.hpp"
 #include "ExecutorSerial.hpp"
 
 #include <stdio.h>
@@ -20,9 +20,9 @@ Async<int> taskD()
     co_return 5;
 }
 
-Async<void> taskA(SerialRunner &serialRunner, Future<int> &future)
+Async<void> taskA(Actor &actor, Future<int> &future)
 {
-    int result = co_await serialRunner.runAsync(intReturnTask());
+    int result = co_await actor.run(intReturnTask());
     printf("Task A received value %i from intReturnTask\n", result);
 
     for(int i=0; i<5; i++) {
@@ -43,9 +43,9 @@ Async<void> taskA(SerialRunner &serialRunner, Future<int> &future)
     co_return;
 }
 
-Async<void> taskB(SerialRunner &serialRunner, Future<int> &future)
+Async<void> taskB(Actor &actor, Future<int> &future)
 {
-    int result = co_await serialRunner.runAsync(intReturnTask());
+    int result = co_await actor.run(intReturnTask());
     printf("Task B received value %i from intReturnTask\n", result);
 
     for(int i=0; i<15; i++) {
@@ -62,9 +62,9 @@ Async<void> taskB(SerialRunner &serialRunner, Future<int> &future)
     co_return;
 }
 
-Async<void> taskC(SerialRunner &serialRunner, Future<int> &future)
+Async<void> taskC(Actor &actor, Future<int> &future)
 {
-    int result = co_await serialRunner.runAsync(intReturnTask());
+    int result = co_await actor.run(intReturnTask());
     printf("Task C received value %i from intReturnTask\n", result);
 
     using namespace std::chrono_literals;
@@ -89,11 +89,11 @@ int main(int argc, char *argv[])
 {
     ExecutorSerial executor;
     Future<int> future;
-    SerialRunner serialRunner(executor);
+    Actor actor(executor);
 
-    Task::start(taskA(serialRunner, future), executor);
-    Task::start(taskB(serialRunner, future), executor);
-    Task::start(taskC(serialRunner, future), executor);
+    Task::start(taskA(actor, future), executor);
+    Task::start(taskB(actor, future), executor);
+    Task::start(taskC(actor, future), executor);
 
     executor.exec();
 

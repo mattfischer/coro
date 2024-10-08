@@ -1,5 +1,5 @@
-#ifndef ASYNC_QUEUE_HPP
-#define ASYNC_QUEUE_HPP
+#ifndef QUEUE_HPP
+#define QUEUE_HPP
 
 #include "Task.hpp"
 
@@ -7,7 +7,7 @@
 #include <queue>
 
 template<typename ElementType>
-class AsyncQueue {
+class Queue {
 public:
     struct Awaitable;
 
@@ -35,7 +35,7 @@ private:
 };
 
 template<typename ElementType>
-struct AsyncQueue<ElementType>::Awaitable {
+struct Queue<ElementType>::Awaitable {
     bool await_ready()
     {
         std::lock_guard<std::mutex> lock(queue.mMutex);
@@ -62,7 +62,7 @@ struct AsyncQueue<ElementType>::Awaitable {
         return element;
     }
 
-    AsyncQueue &queue;
+    Queue &queue;
     Task *task;
     ElementType element;
 };
