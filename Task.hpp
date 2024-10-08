@@ -9,7 +9,6 @@
 
 class Task {
 public:
-    Executor &executor();
     void run();
 
     void enqueueResume();
@@ -56,7 +55,7 @@ struct Task::YieldAwaitable {
 
     void await_suspend(std::coroutine_handle<> handle) {
         Task *task = Task::suspend(handle);
-        task->executor().enqueueTask(task);
+        task->mExecutor.enqueueTask(task);
     }
 };
 
@@ -66,7 +65,7 @@ struct Task::SleepAwaitable {
 
     void await_suspend(std::coroutine_handle<> handle) {
         Task *task = Task::suspend(handle);
-        task->executor().enqueueTaskLater(task, wakeup);
+        task->mExecutor.enqueueTaskLater(task, wakeup);
     }
     
     std::chrono::steady_clock::time_point wakeup;

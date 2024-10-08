@@ -13,11 +13,6 @@ Task::~Task()
     mStartHandle.destroy();
 }
 
-Executor &Task::executor()
-{
-    return mExecutor;
-}
-
 void Task::run()
 {
     sCurrent = this;
