@@ -1,20 +1,20 @@
-#include "Executor.hpp"
+#include "ExecutorSerial.hpp"
 
 #include "Task.hpp"
 
 #include <thread>
 
-void Executor::enqueueTask(Task *task)
+void ExecutorSerial::enqueueTask(Task *task)
 {
     mReadyQueue.push(task);
 }
 
-void Executor::enqueueTaskLater(Task *task, std::chrono::steady_clock::time_point wakeup)
+void ExecutorSerial::enqueueTaskLater(Task *task, std::chrono::steady_clock::time_point wakeup)
 {
     mLaterQueue.emplace(task, wakeup);
 }
 
-void Executor::exec()
+void ExecutorSerial::exec()
 {
     while(true) {
         if(mReadyQueue.size() > 0) {

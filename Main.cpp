@@ -2,6 +2,7 @@
 #include "Task.hpp"
 #include "Future.hpp"
 #include "SerialRunner.hpp"
+#include "ExecutorSerial.hpp"
 
 #include <stdio.h>
 
@@ -86,7 +87,7 @@ Async<void> taskC(SerialRunner &serialRunner, Future<int> &future)
 
 int main(int argc, char *argv[])
 {
-    Executor executor;
+    ExecutorSerial executor;
     Future<int> future;
     SerialRunner serialRunner(executor);
 
