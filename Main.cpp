@@ -11,24 +11,24 @@ template<typename ...Args> void log(std::format_string<Args...> fmt, Args... arg
     std::println("[ {:6} ]  {}", std::this_thread::get_id(), std::format(fmt, std::forward<Args...>(args)...));
 }
 
-Async<int> intReturnTask() {
+Async<int> intReturnFunc() {
     static int result = 5;
-    log("intReturnTask returning {}", result);
+    log("intReturnFunc returning {}", result);
     co_return result++;
 }
 
-Async<int> taskD()
+Async<int> subFunc()
 {
-    log("Task D beginning");
+    log("subFunc beginning");
     co_await Task::yield();
-    log("Task D returning value");
+    log("subFunc returning value");
     co_return 5;
 }
 
 Async<void> taskA(Actor &actor, Future<int> &future)
 {
-    int result = co_await actor.run(intReturnTask());
-    log("Task A received value {} from intReturnTask", result);
+    int result = co_await actor.run(intReturnFunc());
+    log("Task A received value {} from intReturnFunc", result);
 
     for(int i=0; i<5; i++) {
         log("Task A ({})", i);
@@ -41,17 +41,17 @@ Async<void> taskA(Actor &actor, Future<int> &future)
         }
     }
 
-    log("Task A awaiting from D");
-    result = co_await taskD();
-    log("Task A received {}", result);
+    log("Task A awaiting from subFunc");
+    result = co_await subFunc();
+    log("Task A received {} from subFunc", result);
 
     co_return;
 }
 
 Async<void> taskB(Actor &actor, Future<int> &future)
 {
-    int result = co_await actor.run(intReturnTask());
-    log("Task B received value {} from intReturnTask", result);
+    int result = co_await actor.run(intReturnFunc());
+    log("Task B received value {} from intReturnFunc", result);
 
     for(int i=0; i<15; i++) {
         log("Task B ({})", i);
@@ -69,8 +69,8 @@ Async<void> taskB(Actor &actor, Future<int> &future)
 
 Async<void> taskC(Actor &actor, Future<int> &future)
 {
-    int result = co_await actor.run(intReturnTask());
-    log("Task C received value {} from intReturnTask", result);
+    int result = co_await actor.run(intReturnFunc());
+    log("Task C received value {} from intReturnFunc", result);
 
     using namespace std::chrono_literals;
  
