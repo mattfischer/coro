@@ -2,7 +2,7 @@
 #include "Task.hpp"
 #include "Future.hpp"
 #include "Actor.hpp"
-#include "ExecutorParallel.hpp"
+#include "Executor.hpp"
 
 #include <sstream>
 #include <cstdarg>
@@ -104,7 +104,7 @@ Async<void> taskC(Actor &actor, Future<int> &future)
 
 int main(int argc, char *argv[])
 {
-    ExecutorParallel executor;
+    Executor executor;
     Future<int> future;
     Actor actor(executor);
 

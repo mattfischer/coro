@@ -1,9 +1,9 @@
-#include "ExecutorParallel.hpp"
+#include "Executor.hpp"
 #include "Task.hpp"
 
 #include <functional>
 
-void ExecutorParallel::enqueueTask(Task *task)
+void Executor::enqueueTask(Task *task)
 {
     std::lock_guard lock(mMutex);
 
@@ -12,7 +12,7 @@ void ExecutorParallel::enqueueTask(Task *task)
     mConditionVariable.notify_one();
 }
 
-void ExecutorParallel::enqueueTaskLater(Task *task, std::chrono::steady_clock::time_point wakeup)
+void Executor::enqueueTaskLater(Task *task, std::chrono::steady_clock::time_point wakeup)
 {
     std::lock_guard lock(mMutex);
 
@@ -21,7 +21,7 @@ void ExecutorParallel::enqueueTaskLater(Task *task, std::chrono::steady_clock::t
     mConditionVariable.notify_one();
 }
 
-void ExecutorParallel::start(unsigned int numThreads)
+void Executor::start(unsigned int numThreads)
 {
     mRunThreads = true;
     for(int i=0; i<numThreads; i++) {
@@ -29,7 +29,7 @@ void ExecutorParallel::start(unsigned int numThreads)
     }
 }
 
-void ExecutorParallel::stop()
+void Executor::stop()
 {
     {
         std::unique_lock lock(mMutex);
@@ -42,7 +42,7 @@ void ExecutorParallel::stop()
     }
 }
 
-void ExecutorParallel::runThread()
+void Executor::runThread()
 {
     while(true) {
         Task *task = nullptr;
