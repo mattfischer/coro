@@ -4,53 +4,46 @@
 #include "Actor.hpp"
 #include "Executor.hpp"
 
-#include <sstream>
-#include <cstdarg>
-#include <mutex>
 #include <print>
 
-static std::mutex tprintln_mutex;
-template<typename ...Args> void tprintln(std::format_string<Args...> fmt, Args... args)
+template<typename ...Args> void log(std::format_string<Args...> fmt, Args... args)
 {
-    std::lock_guard lock(tprintln_mutex);
-
-    std::print("({}) ", std::this_thread::get_id());
-    std::println(fmt, std::forward<Args...>(args)...);
+    std::println("[ {:6} ]  {}", std::this_thread::get_id(), std::format(fmt, std::forward<Args...>(args)...));
 }
 
 Async<int> intReturnTask() {
     static int result = 5;
-    tprintln("intReturnTask returning {}", result);
+    log("intReturnTask returning {}", result);
     co_return result++;
 }
 
 Async<int> taskD()
 {
-    tprintln("Task D beginning");
+    log("Task D beginning");
     co_await Task::yield();
-    tprintln("Task D returning value");
+    log("Task D returning value");
     co_return 5;
 }
 
 Async<void> taskA(Actor &actor, Future<int> &future)
 {
     int result = co_await actor.run(intReturnTask());
-    tprintln("Task A received value {} from intReturnTask", result);
+    log("Task A received value {} from intReturnTask", result);
 
     for(int i=0; i<5; i++) {
-        tprintln("Task A ({})", i);
+        log("Task A ({})", i);
         if(i == 3) {
-            tprintln("...Task A await");
+            log("...Task A await");
             result = co_await future;
-            tprintln("...Task A resume (future returned {})", result);
+            log("...Task A resume (future returned {})", result);
         } else {
             co_await Task::yield();
         }
     }
 
-    tprintln("Task A awaiting from D");
+    log("Task A awaiting from D");
     result = co_await taskD();
-    tprintln("Task A received {}", result);
+    log("Task A received {}", result);
 
     co_return;
 }
@@ -58,14 +51,14 @@ Async<void> taskA(Actor &actor, Future<int> &future)
 Async<void> taskB(Actor &actor, Future<int> &future)
 {
     int result = co_await actor.run(intReturnTask());
-    tprintln("Task B received value {} from intReturnTask", result);
+    log("Task B received value {} from intReturnTask", result);
 
     for(int i=0; i<15; i++) {
-        tprintln("Task B ({})", i);
+        log("Task B ({})", i);
         if(i == 5) {
-            tprintln("...Task B await");
+            log("...Task B await");
             result = co_await future;
-            tprintln("...Task B resume (future returned {})", result);
+            log("...Task B resume (future returned {})", result);
         } else {
             co_await Task::yield();
         }
@@ -77,22 +70,22 @@ Async<void> taskB(Actor &actor, Future<int> &future)
 Async<void> taskC(Actor &actor, Future<int> &future)
 {
     int result = co_await actor.run(intReturnTask());
-    tprintln("Task C received value {} from intReturnTask", result);
+    log("Task C received value {} from intReturnTask", result);
 
     using namespace std::chrono_literals;
  
     for(int i=0; i<15; i++) {
-        tprintln("Task C ({})", i);
+        log("Task C ({})", i);
         if(i == 10) {
-            tprintln("...complete future");
+            log("...complete future");
             future.complete(10);
         }
         co_await Task::yield();
     }
 
-    tprintln("Task C sleeping...");
+    log("Task C sleeping...");
     co_await Task::sleep_for(1s);
-    tprintln("...Task C done with sleep");
+    log("...Task C done with sleep");
 
     co_return;
 }
