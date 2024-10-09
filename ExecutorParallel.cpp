@@ -5,7 +5,7 @@
 
 void ExecutorParallel::enqueueTask(Task *task)
 {
-    std::lock_guard<std::mutex> lock(mMutex);
+    std::lock_guard lock(mMutex);
 
     mReadyQueue.push(task);
 
@@ -14,7 +14,7 @@ void ExecutorParallel::enqueueTask(Task *task)
 
 void ExecutorParallel::enqueueTaskLater(Task *task, std::chrono::steady_clock::time_point wakeup)
 {
-    std::lock_guard<std::mutex> lock(mMutex);
+    std::lock_guard lock(mMutex);
 
     mLaterQueue.emplace(task, wakeup);
 
@@ -32,7 +32,7 @@ void ExecutorParallel::start(unsigned int numThreads)
 void ExecutorParallel::stop()
 {
     {
-        std::unique_lock<std::mutex> lock(mMutex);
+        std::unique_lock lock(mMutex);
         mRunThreads = false;
         mConditionVariable.notify_all();
     }
@@ -47,7 +47,7 @@ void ExecutorParallel::runThread()
     while(true) {
         Task *task = nullptr;
         {
-            std::unique_lock<std::mutex> lock(mMutex);
+            std::unique_lock lock(mMutex);
             if(!mRunThreads) {
                 break;
             }

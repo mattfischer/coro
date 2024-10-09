@@ -12,7 +12,7 @@
 void tprintf(const char *fmt, ...)
 {
     static std::mutex mutex;
-    std::lock_guard<std::mutex> lock(mutex);
+    std::lock_guard lock(mutex);
 
     std::stringstream ss;
     ss << std::this_thread::get_id();

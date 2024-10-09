@@ -15,7 +15,7 @@ public:
 
     void enqueue(ElementType element)
     {
-        std::lock_guard<std::mutex> lock(mMutex);
+        std::lock_guard lock(mMutex);
 
         if(mAwaitableQueue.size() > 0) {
             Awaitable *awaitable = mAwaitableQueue.front();
@@ -38,7 +38,7 @@ template<typename ElementType>
 struct Queue<ElementType>::Awaitable {
     bool await_ready()
     {
-        std::lock_guard<std::mutex> lock(queue.mMutex);
+        std::lock_guard lock(queue.mMutex);
 
         if(queue.mElementQueue.size() > 0) {
             element = queue.mElementQueue.front();
@@ -51,7 +51,7 @@ struct Queue<ElementType>::Awaitable {
 
     void await_suspend(std::coroutine_handle<> resumeHandle)
     {
-        std::lock_guard<std::mutex> lock(queue.mMutex);
+        std::lock_guard lock(queue.mMutex);
 
         task = Task::suspend(resumeHandle);
         queue.mAwaitableQueue.push(this);

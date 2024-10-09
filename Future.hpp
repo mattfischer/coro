@@ -17,14 +17,14 @@ public:
     struct Awaitable {
         bool await_ready()
         {
-            std::lock_guard<std::mutex> lock(future.mMutex);
+            std::lock_guard lock(future.mMutex);
 
             return future.mReady;
         }
 
         void await_suspend(std::coroutine_handle<> handle) 
         { 
-            std::lock_guard<std::mutex> lock(future.mMutex);
+            std::lock_guard lock(future.mMutex);
 
             Task *task = Task::suspend(handle);
             future.mAwaiters.push_back(task);
@@ -32,7 +32,7 @@ public:
 
         ReturnType await_resume()
         {
-            std::lock_guard<std::mutex> lock(future.mMutex);
+            std::lock_guard lock(future.mMutex);
 
             return future.mReturnValue;
         }
@@ -43,7 +43,7 @@ public:
 
     void complete(ReturnType returnValue)
     {
-        std::lock_guard<std::mutex> lock(mMutex);
+        std::lock_guard lock(mMutex);
 
         mReady = true;
         mReturnValue = returnValue;
@@ -72,14 +72,14 @@ public:
     struct Awaitable {
         bool await_ready()
         {
-            std::lock_guard<std::mutex> lock(future.mMutex);
+            std::lock_guard lock(future.mMutex);
 
             return future.mReady;
         }
 
         void await_suspend(std::coroutine_handle<> handle)
         {
-            std::lock_guard<std::mutex> lock(future.mMutex);
+            std::lock_guard lock(future.mMutex);
 
             Task *task = Task::suspend(handle);
             future.mAwaiters.push_back(task);
@@ -93,7 +93,7 @@ public:
 
     void complete()
     {
-        std::lock_guard<std::mutex> lock(mMutex);
+        std::lock_guard lock(mMutex);
 
         mReady = true;
         for(Task *task : mAwaiters)
