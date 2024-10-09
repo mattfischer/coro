@@ -2,43 +2,60 @@
 #include "Task.hpp"
 #include "Future.hpp"
 #include "Actor.hpp"
-#include "ExecutorSerial.hpp"
+#include "ExecutorParallel.hpp"
 
+#include <sstream>
+#include <cstdarg>
+#include <mutex>
 #include <stdio.h>
+
+void tprintf(const char *fmt, ...)
+{
+    static std::mutex mutex;
+    std::lock_guard<std::mutex> lock(mutex);
+
+    std::stringstream ss;
+    ss << std::this_thread::get_id();
+    printf("(%s) ", ss.str().c_str());
+
+    std::va_list args;
+    va_start(args, fmt);
+    vprintf(fmt, args);
+}
 
 Async<int> intReturnTask() {
     static int result = 5;
-    printf("intReturnTask returning %i\n", result);
+    tprintf("intReturnTask returning %i\n", result);
     co_return result++;
 }
 
 Async<int> taskD()
 {
-    printf("Task D beginning\n");
+    tprintf("Task D beginning\n");
     co_await Task::yield();
-    printf("Task D returning value\n");
+    tprintf("Task D returning value\n");
     co_return 5;
 }
 
 Async<void> taskA(Actor &actor, Future<int> &future)
 {
     int result = co_await actor.run(intReturnTask());
-    printf("Task A received value %i from intReturnTask\n", result);
+    tprintf("Task A received value %i from intReturnTask\n", result);
 
     for(int i=0; i<5; i++) {
-        printf("Task A (%i)\n", i);
+        tprintf("Task A (%i)\n", i);
         if(i == 3) {
-            printf("...Task A await\n");
+            tprintf("...Task A await\n");
             result = co_await future;
-            printf("...Task A resume (future returned %i)\n", result);
+            tprintf("...Task A resume (future returned %i)\n", result);
         } else {
             co_await Task::yield();
         }
     }
 
-    printf("Task A awaiting from D\n");
+    tprintf("Task A awaiting from D\n");
     result = co_await taskD();
-    printf("Task A received %i\n", result);
+    tprintf("Task A received %i\n", result);
 
     co_return;
 }
@@ -46,14 +63,14 @@ Async<void> taskA(Actor &actor, Future<int> &future)
 Async<void> taskB(Actor &actor, Future<int> &future)
 {
     int result = co_await actor.run(intReturnTask());
-    printf("Task B received value %i from intReturnTask\n", result);
+    tprintf("Task B received value %i from intReturnTask\n", result);
 
     for(int i=0; i<15; i++) {
-        printf("Task B (%i)\n", i);
+        tprintf("Task B (%i)\n", i);
         if(i == 5) {
-            printf("...Task B await\n");
+            tprintf("...Task B await\n");
             result = co_await future;
-            printf("...Task B resume (future returned %i)\n", result);
+            tprintf("...Task B resume (future returned %i)\n", result);
         } else {
             co_await Task::yield();
         }
@@ -65,29 +82,29 @@ Async<void> taskB(Actor &actor, Future<int> &future)
 Async<void> taskC(Actor &actor, Future<int> &future)
 {
     int result = co_await actor.run(intReturnTask());
-    printf("Task C received value %i from intReturnTask\n", result);
+    tprintf("Task C received value %i from intReturnTask\n", result);
 
     using namespace std::chrono_literals;
  
     for(int i=0; i<15; i++) {
-        printf("Task C (%i)\n", i);
+        tprintf("Task C (%i)\n", i);
         if(i == 10) {
-            printf("...complete future\n");
+            tprintf("...complete future\n");
             future.complete(10);
         }
         co_await Task::yield();
     }
 
-    printf("Task C sleeping...\n");
+    tprintf("Task C sleeping...\n");
     co_await Task::sleep_for(1s);
-    printf("...Task C done with sleep\n");
+    tprintf("...Task C done with sleep\n");
 
     co_return;
 }
 
 int main(int argc, char *argv[])
 {
-    ExecutorSerial executor;
+    ExecutorParallel executor;
     Future<int> future;
     Actor actor(executor);
 
@@ -95,7 +112,11 @@ int main(int argc, char *argv[])
     Task::start(taskB(actor, future), executor);
     Task::start(taskC(actor, future), executor);
 
-    executor.exec();
+    executor.start(2);
+
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+
+    executor.stop();
 
     return 0;
 }
