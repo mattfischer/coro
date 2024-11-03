@@ -11,10 +11,12 @@ class Task;
 
 class Executor {
 public:
+    ~Executor();
+
     void enqueueTask(Task *task);
     void enqueueTaskLater(Task *task, std::chrono::steady_clock::time_point wakeup);
 
-    void start(unsigned int numThreads);
+    void start(unsigned int numThreads, bool joinPool);
     void stop();
 
 private:

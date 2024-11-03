@@ -3,6 +3,15 @@
 
 #include <functional>
 
+Executor::~Executor()
+{
+    stop();
+
+    for(auto &thread : mThreads) {
+        thread.join();
+    }
+}
+
 void Executor::enqueueTask(Task *task)
 {
     std::lock_guard lock(mMutex);
@@ -21,11 +30,17 @@ void Executor::enqueueTaskLater(Task *task, std::chrono::steady_clock::time_poin
     mConditionVariable.notify_one();
 }
 
-void Executor::start(unsigned int numThreads)
+void Executor::start(unsigned int numThreads, bool joinPool)
 {
     mRunThreads = true;
-    for(int i=0; i<numThreads; i++) {
+
+    int startThreads = joinPool ? numThreads - 1 : numThreads;
+    for(int i=0; i<startThreads; i++) {
         mThreads.emplace_back([&]() { runThread(); } );
+    }
+
+    if(joinPool) {
+        runThread();
     }
 }
 
@@ -35,10 +50,6 @@ void Executor::stop()
         std::unique_lock lock(mMutex);
         mRunThreads = false;
         mConditionVariable.notify_all();
-    }
-
-    for(auto &thread : mThreads) {
-        thread.join();
     }
 }
 

@@ -100,11 +100,15 @@ int main(int argc, char *argv[])
     Task::start(taskB(actor, future), executor);
     Task::start(taskC(actor, future), executor);
 
-    executor.start(2);
+    Task::start(
+        [&]() -> Async<void> {
+            co_await Task::sleep_for(std::chrono::seconds(5));
+            executor.stop();
+        }(),
+        executor
+    );
 
-    std::this_thread::sleep_for(std::chrono::seconds(5));
-
-    executor.stop();
+    executor.start(2, true);
 
     return 0;
 }
