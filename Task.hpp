@@ -18,6 +18,10 @@ public:
         executor.enqueueTask(task);
     }
 
+    template<typename AsyncCallable> static void start(AsyncCallable asyncCallable, Executor &executor) {
+        start(asyncCallable(), executor);
+    }
+
     static Task *suspend(std::coroutine_handle<> resumeHandle);
 
     struct YieldAwaitable;

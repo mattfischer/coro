@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
         [&]() -> Async<void> {
             co_await Task::sleep_for(std::chrono::seconds(5));
             executor.stop();
-        }(),
+        },
         executor
     );
 
